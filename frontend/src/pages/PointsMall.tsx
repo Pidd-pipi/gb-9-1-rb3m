@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Row, Col, Card, Typography, Button, Tag, Modal, message, Spin, Empty } from 'antd'
 import { GiftOutlined } from '@ant-design/icons'
 import { pointsApi } from '../api/points'
-import type { MallItem, PointsAccount } from '../types'
+import type { Coupon, MallItem, PointsAccount } from '../types'
+import dayjs from 'dayjs'
 
 const { Title } = Typography
 
@@ -25,7 +26,8 @@ function PointsMall() {
         pointsApi.getMallItems(),
         pointsApi.getBalance(),
       ])
-      setItems(itemsRes.data?.data?.content || itemsRes.data || [])
+      const itemsPayload = itemsRes.data?.data
+      setItems(Array.isArray(itemsPayload) ? itemsPayload : itemsPayload?.content || [])
       setAccount(accountRes.data?.data || accountRes.data)
     } catch (error) {
       console.error('Failed to load mall items:', error)
@@ -35,12 +37,40 @@ function PointsMall() {
   }
 
   const handleRedeem = async () => {
-    if (!selectedItem) return
+    if (!selectedItem || redeeming) return
     setRedeeming(true)
     try {
-      await pointsApi.redeem(selectedItem.id)
-      message.success('兑换成功')
-      setRedeemModalVisible(false)
+      const res = await pointsApi.redeem(selectedItem.id)
+      const body = res.data
+      if (body?.success) {
+        const coupon: Coupon | undefined = body.data
+        setRedeemModalVisible(false)
+        Modal.success({
+          title: '兑换成功',
+          content: (
+            <div>
+              <p>
+                商品：<strong>{selectedItem.name}</strong>
+              </p>
+              {coupon?.code && (
+                <p>
+                  兑换码：
+                  <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#faad14' }}>
+                    {coupon.code}
+                  </span>
+                </p>
+              )}
+              {coupon?.validUntil && (
+                <p>有效期至：{dayjs(coupon.validUntil).format('YYYY-MM-DD HH:mm')}</p>
+              )}
+              <p style={{ color: '#999' }}>已扣除 {selectedItem.pointsCost} 积分，可在「我的积分」查看明细</p>
+            </div>
+          ),
+        })
+      } else {
+        message.error(body?.message || '兑换失败，请稍后重试')
+        setRedeemModalVisible(false)
+      }
       loadData()
     } catch (error) {
       console.error('Redeem failed:', error)
@@ -51,6 +81,12 @@ function PointsMall() {
 
   const canRedeem = (item: MallItem) => {
     return (account?.balance || 0) >= item.pointsCost && item.stock > 0
+  }
+
+  const getRedeemButtonText = (item: MallItem) => {
+    if (item.stock <= 0) return '已兑完'
+    if ((account?.balance || 0) < item.pointsCost) return '积分不足'
+    return '立即兑换'
   }
 
   const getTypeTag = (type: string) => {
@@ -118,7 +154,7 @@ function PointsMall() {
                         setRedeemModalVisible(true)
                       }}
                     >
-                      立即兑换
+                      {getRedeemButtonText(item)}
                     </Button>,
                   ]}
                 >
@@ -130,8 +166,8 @@ function PointsMall() {
                         <div style={{ fontWeight: 600, color: '#faad14' }}>
                           {item.pointsCost} 积分
                         </div>
-                        <div style={{ color: '#999', fontSize: 12, marginTop: 4 }}>
-                          库存：{item.stock}
+                        <div style={{ color: item.stock > 0 ? '#999' : '#f5222d', fontSize: 12, marginTop: 4 }}>
+                          {item.stock > 0 ? `剩余 ${item.stock} 份` : '已兑完'}
                         </div>
                       </div>
                     }
@@ -165,7 +201,7 @@ function PointsMall() {
             <p>
               当前积分：{account?.balance || 0}
             </p>
-            <p type="secondary" style={{ color: '#999' }}>
+            <p style={{ color: '#999' }}>
               兑换后积分将从您的账户中扣除，请确认是否继续。
             </p>
           </div>

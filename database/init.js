@@ -51,6 +51,44 @@ db.points_records.createIndex({ userId: 1 });
 
 db.createCollection('coupons');
 db.coupons.createIndex({ userId: 1 });
+db.coupons.createIndex({ code: 1 }, { unique: true });
+
+db.createCollection('mall_items');
+db.mall_items.insertMany([
+  {
+    name: '5元课程优惠券',
+    description: '无门槛使用，全站课程通用，有效期30天',
+    pointsCost: 50,
+    type: 'COUPON',
+    stock: 50,
+    discountValue: 5,
+    minAmount: 0,
+    validDays: 30,
+    createdAt: new Date()
+  },
+  {
+    name: '10元课程优惠券',
+    description: '满100元可用，全站课程通用，有效期30天',
+    pointsCost: 100,
+    type: 'COUPON',
+    stock: 20,
+    discountValue: 10,
+    minAmount: 100,
+    validDays: 30,
+    createdAt: new Date()
+  },
+  {
+    name: '限量课程优惠券（满200减30）',
+    description: '限量发售，满200元可用，全站课程通用，有效期30天',
+    pointsCost: 200,
+    type: 'COUPON',
+    stock: 5,
+    discountValue: 30,
+    minAmount: 200,
+    validDays: 30,
+    createdAt: new Date()
+  }
+]);
 
 db.createCollection('comments');
 db.comments.createIndex({ targetId: 1, targetType: 1 });

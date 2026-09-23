@@ -2,11 +2,14 @@ package com.knowledge.platform.controller;
 
 import com.knowledge.platform.dto.ApiResponse;
 import com.knowledge.platform.entity.Checkin;
+import com.knowledge.platform.entity.Coupon;
+import com.knowledge.platform.entity.MallItem;
 import com.knowledge.platform.entity.PointsAccount;
 import com.knowledge.platform.entity.PointsRecord;
 import com.knowledge.platform.repository.PointsRecordRepository;
 import com.knowledge.platform.security.CurrentUserUtil;
 import com.knowledge.platform.service.CheckinService;
+import com.knowledge.platform.service.MallService;
 import com.knowledge.platform.service.PointsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -14,6 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/points")
@@ -23,6 +28,9 @@ public class PointsController {
 
     @Autowired
     private CheckinService checkinService;
+
+    @Autowired
+    private MallService mallService;
 
     @Autowired
     private PointsRecordRepository pointsRecordRepository;
@@ -58,5 +66,19 @@ public class PointsController {
             return ApiResponse.error("请先登录");
         }
         return checkinService.checkin(userId);
+    }
+
+    @GetMapping("/mall")
+    public ApiResponse<List<MallItem>> getMallItems() {
+        return ApiResponse.success(mallService.listItems());
+    }
+
+    @PostMapping("/mall/{itemId}/redeem")
+    public ApiResponse<Coupon> redeem(@PathVariable String itemId) {
+        String userId = currentUserUtil.getCurrentUserId();
+        if (userId == null) {
+            return ApiResponse.error("请先登录");
+        }
+        return mallService.redeem(userId, itemId);
     }
 }
