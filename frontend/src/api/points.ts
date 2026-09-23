@@ -11,5 +11,5 @@ export const pointsApi = {
 
   redeem: (itemId: string) => api.post(`/points/mall/${itemId}/redeem`),
 
-  getCoupons: () => api.get('/coupons'),
+  getCoupons: () => api.get('/points/coupons', { params: { page: 0, size: 50 } }),
 }

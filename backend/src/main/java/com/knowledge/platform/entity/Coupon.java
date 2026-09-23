@@ -22,6 +22,16 @@ public class Coupon {
 
     private CouponType type;
 
+    /**
+     * 兑换来源的商城商品名称
+     */
+    private String itemName;
+
+    /**
+     * 兑换来源的商城商品 ID
+     */
+    private String itemId;
+
     private BigDecimal discountValue;
 
     private BigDecimal minAmount;

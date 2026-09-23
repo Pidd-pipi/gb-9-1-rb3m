@@ -5,6 +5,10 @@ import com.knowledge.platform.entity.PointsRecord;
 import com.knowledge.platform.repository.PointsAccountRepository;
 import com.knowledge.platform.repository.PointsRecordRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +22,9 @@ public class PointsService {
 
     @Autowired
     private PointsRecordRepository pointsRecordRepository;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     public PointsAccount getOrCreateAccount(String userId) {
         return pointsAccountRepository.findByUserId(userId).orElseGet(() -> {
@@ -77,6 +84,46 @@ public class PointsService {
         pointsRecordRepository.save(record);
 
         return true;
+    }
+
+    /**
+     * 原子扣减积分：仅当账户余额足够时才生效，避免并发下扣成负数。
+     *
+     * @return 是否扣减成功
+     */
+    public boolean debitPoints(String userId, int points) {
+        Query query = new Query(
+                Criteria.where("userId").is(userId).and("balance").gte(points));
+        Update update = new Update()
+                .inc("balance", -points)
+                .inc("totalSpent", points)
+                .set("updatedAt", LocalDateTime.now());
+        return mongoTemplate.updateFirst(query, update, PointsAccount.class).getModifiedCount() > 0;
+    }
+
+    /**
+     * 原子退还积分（兑换流程异常时的补偿操作）。
+     */
+    public void refundPoints(String userId, int points) {
+        Query query = new Query(Criteria.where("userId").is(userId));
+        Update update = new Update()
+                .inc("balance", points)
+                .inc("totalSpent", -points)
+                .set("updatedAt", LocalDateTime.now());
+        mongoTemplate.updateFirst(query, update, PointsAccount.class);
+    }
+
+    /**
+     * 写入一条积分流水（扣减记录）。
+     */
+    public void recordSpend(String userId, int points, String reason) {
+        PointsRecord record = new PointsRecord();
+        record.setUserId(userId);
+        record.setType(PointsRecord.Type.SPEND);
+        record.setPoints(points);
+        record.setReason(reason);
+        record.setCreatedAt(LocalDateTime.now());
+        pointsRecordRepository.save(record);
     }
 
     public PointsAccount getAccount(String userId) {

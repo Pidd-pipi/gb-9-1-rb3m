@@ -51,6 +51,10 @@ db.points_records.createIndex({ userId: 1 });
 
 db.createCollection('coupons');
 db.coupons.createIndex({ userId: 1 });
+db.coupons.createIndex({ code: 1 }, { unique: true });
+
+db.createCollection('mall_items');
+db.mall_items.createIndex({ createdAt: 1 });
 
 db.createCollection('comments');
 db.comments.createIndex({ targetId: 1, targetType: 1 });

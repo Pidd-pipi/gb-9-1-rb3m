@@ -137,12 +137,15 @@ export interface Coupon {
   userId: string
   code: string
   type: 'DISCOUNT' | 'FREE'
+  itemName?: string
+  itemId?: string
   discountValue?: number
   minAmount?: number
   validFrom: string
   validUntil: string
   used: boolean
   usedAt?: string
+  createdAt?: string
 }
 
 export interface MallItem {
@@ -154,6 +157,9 @@ export interface MallItem {
   targetId?: string
   stock: number
   image?: string
+  discountValue?: number
+  minAmount?: number
+  validDays?: number
 }
 
 export interface SearchResult {
